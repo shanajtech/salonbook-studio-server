@@ -3,6 +3,7 @@ import cors from 'cors';
 import { toNodeHandler } from 'better-auth/node';
 import { auth,passwordOK } from './auth.js';
 import { init } from './db.js';
+import { initializeCatalog } from './catalog-seed.js';
 import { accounts } from './accounts.js';
 import { bookings } from './appointments.js';
 import { catalog } from './services.js';
@@ -11,7 +12,7 @@ const app=express();
 const authHandler=toNodeHandler(auth);
 let readiness;
 function connect() {
-  readiness ||= init().catch(error=>{readiness=null;throw error;});
+  readiness ||= init().then(initializeCatalog).catch(error=>{readiness=null;throw error;});
   return readiness;
 }
 app.use(async (_req,_res,next)=>{await connect();next();});
