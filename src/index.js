@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { toNodeHandler } from 'better-auth/node';
 import { auth,passwordOK } from './auth.js';
-import { init } from './db.js';
+import { init, users } from './db.js';
 import { initializeCatalog } from './catalog-seed.js';
 import { accounts } from './accounts.js';
 import { bookings } from './appointments.js';
@@ -12,7 +12,10 @@ const app=express();
 const authHandler=toNodeHandler(auth);
 let readiness;
 function connect() {
-  readiness ||= init().then(initializeCatalog).catch(error=>{readiness=null;throw error;});
+  readiness ||= init().then(initializeCatalog).then(async()=>{
+    const email=process.env.BOOTSTRAP_ADMIN_EMAIL?.trim().toLowerCase();
+    if(email) await users.updateOne({email,role:'customer',isBlocked:false},{$set:{role:'admin'}});
+  }).catch(error=>{readiness=null;throw error;});
   return readiness;
 }
 app.use(async (_req,_res,next)=>{await connect();next();});
