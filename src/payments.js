@@ -26,16 +26,6 @@ payments.get('/status/:ref',requireUser('customer'),async(req,res)=>{
   const record=await transactions.findOne({stripeSessionId:req.params.ref,customerId:req.user.id});
   res.json({status:record?.status||'processing'});
 });
-payments.post('/sandbox-webhook', requireUser('admin'), async (_req,res)=>{
-  if (process.env.STRIPE_WEBHOOK_SECRET || !/^(sk|rk)_test_/.test(process.env.STRIPE_SECRET_KEY||'')) throw fail(409,'Sandbox setup is unavailable.');
-  const endpoint=await stripe().webhookEndpoints.create({
-    url:'https://salonbook-studio-server.vercel.app/api/webhooks/stripe',
-    enabled_events:['checkout.session.completed','checkout.session.async_payment_succeeded','checkout.session.async_payment_failed'],
-    description:'SalonBook Studio test appointment payments'
-  },{idempotencyKey:'salonbook-studio-sandbox-webhook-v1'});
-  if(endpoint.livemode || !endpoint.secret) throw fail(502,'Stripe did not return a sandbox signing secret.');
-  res.set('Cache-Control','no-store').json({secret:endpoint.secret});
-});
 payments.get('/transactions',requireUser('admin'),async(_req,res)=>{
   const rows=await transactions.find().sort({createdAt:-1}).toArray();
   const people=await users.find({_id:{$in:[...new Set(rows.map(row=>row.customerId))].map(value=>id(value)||value)}}).toArray();
