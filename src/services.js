@@ -27,10 +27,14 @@ async function fields(body, previous) {
     if (!/^[A-Za-z0-9+/=]+$/.test(body.imageData) || body.imageData.length>4000000) throw fail(400,'Select a supported image of 3 MB or less.');
     if (!process.env.IMGBB_API_KEY) throw fail(503,'Image uploads are unavailable.');
     const data = new FormData();
-    data.set('key',process.env.IMGBB_API_KEY);
     data.set('image',body.imageData);
-    const result = await fetch('https://api.imgbb.com/1/upload',{method:'POST',body:data,signal:AbortSignal.timeout(20000)}).catch(()=>null);
-    if (!result?.ok) throw fail(502,'Image upload failed. Try again.');
+    const endpoint = new URL('https://api.imgbb.com/1/upload');
+    endpoint.searchParams.set('key',process.env.IMGBB_API_KEY);
+    const result = await fetch(endpoint,{method:'POST',body:data,signal:AbortSignal.timeout(20000)}).catch(()=>null);
+    if (!result?.ok) {
+      console.warn('ImgBB upload failed',result?.status || 'connection error');
+      throw fail(502,'Image upload failed. Try again.');
+    }
     image = imageURL((await result.json()).data.url);
   }
   if (!image) throw fail(400,'Upload a service image.');
