@@ -14,7 +14,11 @@ let readiness;
 function connect() {
   readiness ||= init().then(initializeCatalog).then(async()=>{
     const email=process.env.BOOTSTRAP_ADMIN_EMAIL?.trim().toLowerCase();
-    if(email) await users.updateOne({email,role:'customer',isBlocked:false},{$set:{role:'admin'}});
+    if(email) {
+      await users.updateOne({email,role:'customer',isBlocked:false},{$set:{role:'admin'}});
+      const account=await users.findOne({email,role:'admin',isBlocked:false},{projection:{_id:1}});
+      console.info(account?'Evaluator admin verified':'Evaluator account not found or blocked');
+    }
   }).catch(error=>{readiness=null;throw error;});
   return readiness;
 }
