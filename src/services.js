@@ -27,12 +27,20 @@ async function fields(body, previous) {
     if (!/^[A-Za-z0-9+/=]+$/.test(body.imageData) || body.imageData.length>4000000) throw fail(400,'Select a supported image of 3 MB or less.');
     if (!process.env.IMGBB_API_KEY) throw fail(503,'Image uploads are unavailable.');
     const data = new FormData();
-    data.set('image',body.imageData);
+    const bytes = Buffer.from(body.imageData,'base64');
+    const png = bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]));
+    const gif = /^(GIF87a|GIF89a)$/.test(bytes.subarray(0,6).toString('ascii'));
+    const jpeg = bytes[0]===255 && bytes[1]===216 && bytes[2]===255;
+    const webp = bytes.subarray(0,4).toString('ascii')==='RIFF' && bytes.subarray(8,12).toString('ascii')==='WEBP';
+    const format=png?'png':gif?'gif':jpeg?'jpeg':webp?'webp':null;
+    if(!format) throw fail(400,'Choose a PNG, JPEG, GIF or WebP image.');
+    data.set('image',new Blob([bytes],{type:'image/'+format}),'service.'+format);
     const endpoint = new URL('https://api.imgbb.com/1/upload');
     endpoint.searchParams.set('key',process.env.IMGBB_API_KEY);
     const result = await fetch(endpoint,{method:'POST',body:data,signal:AbortSignal.timeout(20000)}).catch(()=>null);
     if (!result?.ok) {
-      console.warn('ImgBB upload failed',result?.status || 'connection error');
+      const details=await result?.json().catch(()=>null);
+      console.warn('ImgBB upload failed',result?.status || 'connection error',Number(details?.error?.code)||'');
       throw fail(502,'Image upload failed. Try again.');
     }
     image = imageURL((await result.json()).data.url);
