@@ -9,6 +9,12 @@ import { catalog } from './services.js';
 import { payments,webhook } from './payments.js';
 const app=express();
 const authHandler=toNodeHandler(auth);
+let readiness;
+function connect() {
+  readiness ||= init().catch(error=>{readiness=null;throw error;});
+  return readiness;
+}
+app.use(async (_req,_res,next)=>{await connect();next();});
 app.disable('x-powered-by');
 app.use(cors({origin:process.env.CLIENT_URL,credentials:true}));
 app.post('/api/webhooks/stripe',express.raw({type:'application/json'}),webhook);
@@ -34,5 +40,8 @@ app.use((error,_req,res,_next)=>{
   if(status>=500) console.error(error.name,status);
   res.status(status).json({error:status===500?'Something went wrong. Please try again.':error.message});
 });
-await init();
-app.listen(Number(process.env.PORT||4000),()=>console.info('SalonBook API ready'));
+if (!process.env.VERCEL) {
+  await connect();
+  app.listen(Number(process.env.PORT||4000),()=>console.info('SalonBook API ready'));
+}
+export default app;
