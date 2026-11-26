@@ -24,9 +24,11 @@ async function fields(body, previous) {
   if (!serviceName || !category || !description || !Number.isFinite(price) || price<=0 || !Number.isInteger(duration) || duration<=0 || !['active','inactive'].includes(status)) throw fail(400,'Complete the service fields with a positive price and duration.');
   let image = previous?.image;
   if (body.imageData) {
-    if (!/^[A-Za-z0-9+/=]+$/.test(body.imageData) || body.imageData.length>7000000) throw fail(400,'Select a supported image smaller than 5 MB.');
+    if (!/^[A-Za-z0-9+/=]+$/.test(body.imageData) || body.imageData.length>4000000) throw fail(400,'Select a supported image of 3 MB or less.');
     if (!process.env.IMGBB_API_KEY) throw fail(503,'Image uploads are unavailable.');
-    const data = new URLSearchParams({key:process.env.IMGBB_API_KEY,image:body.imageData});
+    const data = new FormData();
+    data.set('key',process.env.IMGBB_API_KEY);
+    data.set('image',body.imageData);
     const result = await fetch('https://api.imgbb.com/1/upload',{method:'POST',body:data,signal:AbortSignal.timeout(20000)}).catch(()=>null);
     if (!result?.ok) throw fail(502,'Image upload failed. Try again.');
     image = imageURL((await result.json()).data.url);
