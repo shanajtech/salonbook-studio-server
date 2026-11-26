@@ -30,6 +30,7 @@ app.post('/api/auth/sign-up/email',express.raw({type:'application/json',limit:'6
 });
 app.all('/api/auth/{*path}',authHandler);
 app.use(express.json({limit:'8mb'}));
+app.get('/', (_req, res) => res.json({ name: 'SalonBook Studio API', status: 'online', endpoints: { health: '/api/health', services: '/api/services' } }));
 app.get('/api/health',(_req,res)=>res.json({ok:true}));
 app.use('/api/services',catalog);
 app.use('/api/appointments',bookings);
