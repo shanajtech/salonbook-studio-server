@@ -1,5 +1,5 @@
 import { betterAuth } from 'better-auth';
-import { mongodbAdapter } from 'better-auth/adapters/mongodb';
+import { mongodbAdapter } from '@better-auth/mongo-adapter';
 import { jwt } from 'better-auth/plugins';
 import { fromNodeHeaders } from 'better-auth/node';
 import { createLocalJWKSet, jwtVerify } from 'jose';
